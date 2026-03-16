@@ -47,11 +47,29 @@ void Renderer::CreateVertexBufferObjects()
 	glGenBuffers(1, &m_VBORect);
 	glBindBuffer(GL_ARRAY_BUFFER, m_VBORect);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(rect), rect, GL_STATIC_DRAW);
+	float centerX = 0;
+	float centerY = 0;
+	float size = 0.1;
 
-	float triangle[] = {
-		0,0,0,	// v0
-		1,0,0,	// v1
-		1,1,0	// v2
+	float triangle[] = 
+	{
+		centerX - size / 2, centerY - size / 2, 0,		
+		centerX + size / 2, centerY - size / 2, 0,
+		centerX + size / 2, centerY + size / 2, 0,
+
+		centerX - size / 2, centerY - size / 2, 0,
+		centerX + size / 2, centerY + size / 2, 0,
+		centerX - size / 2, centerY + size / 2, 0
+
+		
+		//0,0,0,	// v0
+		//1,0,0,	// v1
+		//1,1,0,	// v2
+
+
+		//0,0,0,	// v0
+		//1,1,0,	// v1
+		//0,1,0	    // v2
 	};
 	glGenBuffers(1, &m_TriangleVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, m_TriangleVBO);
@@ -180,6 +198,7 @@ void Renderer::DrawSolidRect(float x, float y, float z, float size, float r, flo
 	glUniform4f(glGetUniformLocation(m_SolidRectShader, "u_Trans"), newX, newY, 0, size);
 	glUniform4f(glGetUniformLocation(m_SolidRectShader, "u_Color"), r, g, b, a);
 
+
 	int attribPosition = glGetAttribLocation(m_SolidRectShader, "a_Position");
 	glEnableVertexAttribArray(attribPosition);
 	glBindBuffer(GL_ARRAY_BUFFER, m_VBORect);
@@ -191,19 +210,21 @@ void Renderer::DrawSolidRect(float x, float y, float z, float size, float r, flo
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
-
+float g_Time = 0;
 void Renderer::DrawTriangle()
 {
-
+	g_Time += 0.001;
 	glUseProgram(m_TriangleShader);
-
+	int u_Time = glGetUniformLocation(m_TriangleShader, "u_Time");
+	glUniform1f(u_Time, g_Time);
 
 	int attribPosition = glGetAttribLocation(m_TriangleShader, "a_Position");
 	glEnableVertexAttribArray(attribPosition);
 	glBindBuffer(GL_ARRAY_BUFFER, m_TriangleVBO);
-	glVertexAttribPointer(attribPosition, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, 0);
-
+	glVertexAttribPointer(attribPosition, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, 1);
+	
 	glDrawArrays(GL_TRIANGLES, 0, 6);
+
 }
 
 void Renderer::GetGLPosition(float x, float y, float *newX, float *newY)
