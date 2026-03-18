@@ -3,6 +3,11 @@
 uniform float u_Time;
 
 in vec3 a_Position;
+in float a_Mass;
+in vec2 a_Vel;
+
+const float c_PI = 3.141592;
+const vec2 c_G= vec2(0, -9.8);
 
 void Basic()
 {
@@ -12,6 +17,7 @@ void Basic()
 	newPosition.x = a_Position.x + t;
 	newPosition.y = a_Position.y;
 	newPosition.z = a_Position.z;
+    newPosition.w = 1.0;                    // 분명 이거 없었는데?????
 	gl_Position = newPosition;
 }
 
@@ -19,7 +25,7 @@ void sin1()
 {
 	float t = mod(u_Time*10,1.0);	// 0~1
 	vec4 newPosition;
-	//newPosition = vec4(a_Position, 1);
+	newPosition = vec4(a_Position, 1);
 	newPosition.x = a_Position.x + t;
 	newPosition.y = a_Position.y + 0.5*sin(t*2*3.141592);
 	newPosition.z = a_Position.z;
@@ -120,10 +126,24 @@ void GPT2() {
 
     gl_Position = vec4(flower + orbit, a_Position.z, 1.0);}
 
+void Falling()
+{
+    float t = mod(u_Time, 1.0);
+    float vx = a_Vel.x;
+    float vy = a_Vel.y;
+    vec4 newPosition;
+    newPosition.x = a_Position.x + vx * t + 0.5 * c_G.x * t * t;
+    newPosition.y = a_Position.y + vy * t + 0.5 * c_G.y * t * t;
+    newPosition.z = 0;
+    newPosition.w = 1;
+
+    gl_Position = newPosition;
+}
 void main()
 {
 	//Basic();
 	//Circle();
 	//GPT2();
-    sin1();
+    //sin1();
+    Falling();
 }

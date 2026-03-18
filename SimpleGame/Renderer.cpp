@@ -49,27 +49,38 @@ void Renderer::CreateVertexBufferObjects()
 	glBufferData(GL_ARRAY_BUFFER, sizeof(rect), rect, GL_STATIC_DRAW);
 	float centerX = 0;
 	float centerY = 0;
+	float vx = 1;
+	float vy = 1;
 	float size = 0.1;
+	float mass = 1;
 
 	float triangle[] = 
 	{
-		centerX - size / 2, centerY - size / 2, 0,		
+		// == Triangle 1 ==
+		// v0
+		centerX - size / 2, centerY - size / 2, 0,	
+		mass, vx, vy,
+
+		//v1
 		centerX + size / 2, centerY - size / 2, 0,
-		centerX + size / 2, centerY + size / 2, 0,
+		mass, vx, vy,
 
+		// v2
+		centerX + size / 2, centerY + size / 2, 0,
+		mass, vx, vy,
+
+		// == Triangle 2 ==
+		// v3
 		centerX - size / 2, centerY - size / 2, 0,
+		mass, vx, vy,
+
+		// v4
 		centerX + size / 2, centerY + size / 2, 0,
-		centerX - size / 2, centerY + size / 2, 0
+		mass, vx, vy,
 
-		
-		//0,0,0,	// v0
-		//1,0,0,	// v1
-		//1,1,0,	// v2
-
-
-		//0,0,0,	// v0
-		//1,1,0,	// v1
-		//0,1,0	    // v2
+		//v5
+		centerX - size / 2, centerY + size / 2, 0,
+		mass, vx, vy
 	};
 	glGenBuffers(1, &m_TriangleVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, m_TriangleVBO);
@@ -218,10 +229,31 @@ void Renderer::DrawTriangle()
 	int u_Time = glGetUniformLocation(m_TriangleShader, "u_Time");
 	glUniform1f(u_Time, g_Time);
 
-	int attribPosition = glGetAttribLocation(m_TriangleShader, "a_Position");
+	int attribPosition = glGetAttribLocation(m_TriangleShader, 
+		"a_Position");
+	int attriMass = glGetAttribLocation(m_TriangleShader, 
+		"a_Mass");	
+	int attriVel = glGetAttribLocation(m_TriangleShader, 
+		"a_Vel");
+
 	glEnableVertexAttribArray(attribPosition);
+	glEnableVertexAttribArray(attriMass);
+	glEnableVertexAttribArray(attriVel);
+
 	glBindBuffer(GL_ARRAY_BUFFER, m_TriangleVBO);
-	glVertexAttribPointer(attribPosition, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, 0);
+
+	glVertexAttribPointer(attribPosition, 3, 
+		GL_FLOAT,	GL_FALSE, 
+		6 * sizeof(float), 0);
+
+	glVertexAttribPointer(attriMass, 1, 
+		GL_FLOAT, GL_FALSE, 
+		6 * sizeof(float), (GLvoid*)(sizeof(float)*3));
+
+	glVertexAttribPointer(attriVel, 2,		
+		GL_FLOAT, GL_FALSE,
+		6 * sizeof(float), (GLvoid*)(sizeof(float) * 4));
+	
 	
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 
