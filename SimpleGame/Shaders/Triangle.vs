@@ -132,8 +132,10 @@ void Falling()
     float t = mod(u_Time, 1.0);
     float vx = a_Vel.x;
     float vy = a_Vel.y;
-    float initPosX = cos(a_RV*2*c_PI);  // 이게 왜 됨 
-    float initPosY = sin(a_RV*2*c_PI);  // 이게 왜 되지?
+    // float initPosX = cos(a_RV*2*c_PI);  // 이게 왜 됨 
+    // float initPosY = sin(a_RV*2*c_PI);  // 이게 왜 되지?
+    float initPosX = a_Position.x + cos(a_RV*2*c_PI);  // 교수님 답안인데 이거 왜 안됨?
+    float initPosY = a_Position.y + sin(a_RV*2*c_PI);  // " 이게 왜 안되지?
     vec4 newPosition;
     newPosition.x = initPosX + vx * t + 0.5 * c_G.x * t * t;
     newPosition.y = initPosY + vy * t + 0.5 * c_G.y * t * t;
