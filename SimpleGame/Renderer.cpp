@@ -6,25 +6,28 @@ Renderer::Renderer(int windowSizeX, int windowSizeY)
 	Initialize(windowSizeX, windowSizeY);
 }
 
-
 Renderer::~Renderer()
 {
 }
 
 void Renderer::Initialize(int windowSizeX, int windowSizeY)
 {
-	//Set window size
+	// Set window size
 	m_WindowSizeX = windowSizeX;
 	m_WindowSizeY = windowSizeY;
 
-	//Load shaders
+	srand((unsigned int)time(NULL));
+
+	// Load shaders
 	m_SolidRectShader = CompileShaders("./Shaders/SolidRect.vs", "./Shaders/SolidRect.fs");
 	m_TriangleShader = CompileShaders("./Shaders/Triangle.vs", "./Shaders/Triangle.fs");
-	
-	//Create VBOs
+
+	// Create VBOs
 	CreateVertexBufferObjects();
 
-	if (m_SolidRectShader > 0 && m_VBORect > 0)
+	GenParticles(300);
+
+	if (m_SolidRectShader > 0 && m_VBORect > 0 && m_TriangleShader > 0 && m_TriangleVBO > 0)
 	{
 		m_Initialized = true;
 	}
@@ -37,147 +40,110 @@ bool Renderer::IsInitialized()
 
 void Renderer::CreateVertexBufferObjects()
 {
-	float rect[]
-		=
+	float rect[] =
 	{
-		-1.f / m_WindowSizeX, -1.f / m_WindowSizeY, 0.f, -1.f / m_WindowSizeX, 1.f / m_WindowSizeY, 0.f, 1.f / m_WindowSizeX, 1.f / m_WindowSizeY, 0.f, //Triangle1
-		-1.f / m_WindowSizeX, -1.f / m_WindowSizeY, 0.f,  1.f / m_WindowSizeX, 1.f / m_WindowSizeY, 0.f, 1.f / m_WindowSizeX, -1.f / m_WindowSizeY, 0.f, //Triangle2
+		-1.f / m_WindowSizeX, -1.f / m_WindowSizeY, 0.f,
+		-1.f / m_WindowSizeX,  1.f / m_WindowSizeY, 0.f,
+		 1.f / m_WindowSizeX,  1.f / m_WindowSizeY, 0.f,
+
+		-1.f / m_WindowSizeX, -1.f / m_WindowSizeY, 0.f,
+		 1.f / m_WindowSizeX,  1.f / m_WindowSizeY, 0.f,
+		 1.f / m_WindowSizeX, -1.f / m_WindowSizeY, 0.f,
 	};
 
 	glGenBuffers(1, &m_VBORect);
 	glBindBuffer(GL_ARRAY_BUFFER, m_VBORect);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(rect), rect, GL_STATIC_DRAW);
-	float centerX = 0;
-	float centerY = 0;
-	float vx = 1;
-	float vy = 1;
-	float size = 0.1;
-	float mass = 1;
-
-	float triangle[] = 
-	{
-		// == Triangle 1 ==
-		// v0
-		centerX - size / 2, centerY - size / 2, 0,	
-		mass, vx, vy,
-
-		//v1
-		centerX + size / 2, centerY - size / 2, 0,
-		mass, vx, vy,
-
-		// v2
-		centerX + size / 2, centerY + size / 2, 0,
-		mass, vx, vy,
-
-		// == Triangle 2 ==
-		// v3
-		centerX - size / 2, centerY - size / 2, 0,
-		mass, vx, vy,
-
-		// v4
-		centerX + size / 2, centerY + size / 2, 0,
-		mass, vx, vy,
-
-		//v5
-		centerX - size / 2, centerY + size / 2, 0,
-		mass, vx, vy
-	};
-	glGenBuffers(1, &m_TriangleVBO);
-	glBindBuffer(GL_ARRAY_BUFFER, m_TriangleVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(triangle), triangle, GL_STATIC_DRAW);
 }
 
 void Renderer::AddShader(GLuint ShaderProgram, const char* pShaderText, GLenum ShaderType)
 {
-	//쉐이더 오브젝트 생성
 	GLuint ShaderObj = glCreateShader(ShaderType);
 
-	if (ShaderObj == 0) {
+	if (ShaderObj == 0)
+	{
 		fprintf(stderr, "Error creating shader type %d\n", ShaderType);
 	}
 
 	const GLchar* p[1];
 	p[0] = pShaderText;
-	GLint Lengths[1];
-	Lengths[0] = strlen(pShaderText);
-	//쉐이더 코드를 쉐이더 오브젝트에 할당
-	glShaderSource(ShaderObj, 1, p, Lengths);
 
-	//할당된 쉐이더 코드를 컴파일
+	GLint Lengths[1];
+	Lengths[0] = (GLint)strlen(pShaderText);
+
+	glShaderSource(ShaderObj, 1, p, Lengths);
 	glCompileShader(ShaderObj);
 
 	GLint success;
-	// ShaderObj 가 성공적으로 컴파일 되었는지 확인
 	glGetShaderiv(ShaderObj, GL_COMPILE_STATUS, &success);
-	if (!success) {
-		GLchar InfoLog[1024];
 
-		//OpenGL 의 shader log 데이터를 가져옴
+	if (!success)
+	{
+		GLchar InfoLog[1024];
 		glGetShaderInfoLog(ShaderObj, 1024, NULL, InfoLog);
 		fprintf(stderr, "Error compiling shader type %d: '%s'\n", ShaderType, InfoLog);
 		printf("%s \n", pShaderText);
 	}
 
-	// ShaderProgram 에 attach!!
 	glAttachShader(ShaderProgram, ShaderObj);
 }
 
-bool Renderer::ReadFile(char* filename, std::string *target)
+bool Renderer::ReadFile(char* filename, std::string* target)
 {
 	std::ifstream file(filename);
+
 	if (file.fail())
 	{
 		std::cout << filename << " file loading failed.. \n";
 		file.close();
 		return false;
 	}
+
 	std::string line;
-	while (getline(file, line)) {
+	while (getline(file, line))
+	{
 		target->append(line.c_str());
 		target->append("\n");
 	}
+
+	file.close();
 	return true;
 }
 
 GLuint Renderer::CompileShaders(char* filenameVS, char* filenameFS)
 {
-	GLuint ShaderProgram = glCreateProgram(); //빈 쉐이더 프로그램 생성
+	GLuint ShaderProgram = glCreateProgram();
 
-	if (ShaderProgram == 0) { //쉐이더 프로그램이 만들어졌는지 확인
+	if (ShaderProgram == 0)
+	{
 		fprintf(stderr, "Error creating shader program\n");
 	}
 
 	std::string vs, fs;
 
-	//shader.vs 가 vs 안으로 로딩됨
-	if (!ReadFile(filenameVS, &vs)) {
+	if (!ReadFile(filenameVS, &vs))
+	{
 		printf("Error compiling vertex shader\n");
 		return -1;
-	};
+	}
 
-	//shader.fs 가 fs 안으로 로딩됨
-	if (!ReadFile(filenameFS, &fs)) {
+	if (!ReadFile(filenameFS, &fs))
+	{
 		printf("Error compiling fragment shader\n");
 		return -1;
-	};
+	}
 
-	// ShaderProgram 에 vs.c_str() 버텍스 쉐이더를 컴파일한 결과를 attach함
 	AddShader(ShaderProgram, vs.c_str(), GL_VERTEX_SHADER);
-
-	// ShaderProgram 에 fs.c_str() 프레그먼트 쉐이더를 컴파일한 결과를 attach함
 	AddShader(ShaderProgram, fs.c_str(), GL_FRAGMENT_SHADER);
 
 	GLint Success = 0;
 	GLchar ErrorLog[1024] = { 0 };
 
-	//Attach 완료된 shaderProgram 을 링킹함
 	glLinkProgram(ShaderProgram);
-
-	//링크가 성공했는지 확인
 	glGetProgramiv(ShaderProgram, GL_LINK_STATUS, &Success);
 
-	if (Success == 0) {
-		// shader program 로그를 받아옴
+	if (Success == 0)
+	{
 		glGetProgramInfoLog(ShaderProgram, sizeof(ErrorLog), NULL, ErrorLog);
 		std::cout << filenameVS << ", " << filenameFS << " Error linking shader program\n" << ErrorLog;
 		return -1;
@@ -185,7 +151,9 @@ GLuint Renderer::CompileShaders(char* filenameVS, char* filenameFS)
 
 	glValidateProgram(ShaderProgram);
 	glGetProgramiv(ShaderProgram, GL_VALIDATE_STATUS, &Success);
-	if (!Success) {
+
+	if (!Success)
+	{
 		glGetProgramInfoLog(ShaderProgram, sizeof(ErrorLog), NULL, ErrorLog);
 		std::cout << filenameVS << ", " << filenameFS << " Error validating shader program\n" << ErrorLog;
 		return -1;
@@ -203,15 +171,14 @@ void Renderer::DrawSolidRect(float x, float y, float z, float size, float r, flo
 
 	GetGLPosition(x, y, &newX, &newY);
 
-	//Program select
 	glUseProgram(m_SolidRectShader);
 
 	glUniform4f(glGetUniformLocation(m_SolidRectShader, "u_Trans"), newX, newY, 0, size);
 	glUniform4f(glGetUniformLocation(m_SolidRectShader, "u_Color"), r, g, b, a);
 
-
 	int attribPosition = glGetAttribLocation(m_SolidRectShader, "a_Position");
 	glEnableVertexAttribArray(attribPosition);
+
 	glBindBuffer(GL_ARRAY_BUFFER, m_VBORect);
 	glVertexAttribPointer(attribPosition, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 3, 0);
 
@@ -221,45 +188,89 @@ void Renderer::DrawSolidRect(float x, float y, float z, float size, float r, flo
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
+
 float g_Time = 0;
+
 void Renderer::DrawTriangle()
 {
-	g_Time += 0.001;
+	g_Time += 0.0001f;
+
 	glUseProgram(m_TriangleShader);
+
 	int u_Time = glGetUniformLocation(m_TriangleShader, "u_Time");
 	glUniform1f(u_Time, g_Time);
 
-	int attribPosition = glGetAttribLocation(m_TriangleShader, 
-		"a_Position");
-	int attriMass = glGetAttribLocation(m_TriangleShader, 
-		"a_Mass");	
-	int attriVel = glGetAttribLocation(m_TriangleShader, 
-		"a_Vel");
-
+	int attribPosition = glGetAttribLocation(m_TriangleShader, "a_Position");
+	int attriMass = glGetAttribLocation(m_TriangleShader, "a_Mass");
+	int attriVel = glGetAttribLocation(m_TriangleShader, "a_Vel");
+	int attriRV = glGetAttribLocation(m_TriangleShader, "a_RV");
 	glEnableVertexAttribArray(attribPosition);
 	glEnableVertexAttribArray(attriMass);
 	glEnableVertexAttribArray(attriVel);
-
+	glEnableVertexAttribArray(attriRV);
 	glBindBuffer(GL_ARRAY_BUFFER, m_TriangleVBO);
 
-	glVertexAttribPointer(attribPosition, 3, 
-		GL_FLOAT,	GL_FALSE, 
-		6 * sizeof(float), 0);
-
-	glVertexAttribPointer(attriMass, 1, 
-		GL_FLOAT, GL_FALSE, 
-		6 * sizeof(float), (GLvoid*)(sizeof(float)*3));
-
-	glVertexAttribPointer(attriVel, 2,		
+	glVertexAttribPointer(attribPosition, 3,
 		GL_FLOAT, GL_FALSE,
-		6 * sizeof(float), (GLvoid*)(sizeof(float) * 4));
-	
-	
-	glDrawArrays(GL_TRIANGLES, 0, 6);
+		7 * sizeof(float), 0);
 
+	glVertexAttribPointer(attriMass, 1,
+		GL_FLOAT, GL_FALSE,
+		7 * sizeof(float), (GLvoid*)(sizeof(float) * 3));
+
+	glVertexAttribPointer(attriVel, 2,
+		GL_FLOAT, GL_FALSE,
+		7 * sizeof(float), (GLvoid*)(sizeof(float) * 4));
+	glVertexAttribPointer(attriRV, 2,
+		GL_FLOAT, GL_FALSE,
+		7 * sizeof(float), (GLvoid*)(sizeof(float) * 5));
+
+	glDrawArrays(GL_POINTS, 0, m_TriangleVertexCount);
+
+	glDisableVertexAttribArray(attribPosition);
+	glDisableVertexAttribArray(attriMass);
+	glDisableVertexAttribArray(attriVel);
 }
 
-void Renderer::GetGLPosition(float x, float y, float *newX, float *newY)
+void Renderer::GenParticles(int Num)
+{
+	if (Num <= 0)
+		return;
+
+	std::vector<float> particles;
+	particles.reserve(Num * 7);
+
+	for (int i = 0; i < Num; i++)
+	{
+		float x = ((float)rand() / RAND_MAX) * 2.0f - 1.0f;
+		float y = ((float)rand() / RAND_MAX) * 2.0f - 1.0f;
+		float z = 0.0f;
+
+		float mass = ((float)rand() / RAND_MAX) * 0.9f + 0.1f;
+
+		float vx = ((float)rand() / RAND_MAX) * 2.0f - 1.0f;
+		float vy = ((float)rand() / RAND_MAX) * 2.0f - 1.0f;
+		float rv = ((float)rand() / RAND_MAX) * 2.0f - 1.0f;
+		particles.push_back(x);
+		particles.push_back(y);
+		particles.push_back(z);
+		particles.push_back(mass);
+		particles.push_back(vx);
+		particles.push_back(vy);
+		particles.push_back(rv);
+	}
+
+	m_TriangleVertexCount = Num;
+
+	if (m_TriangleVBO == 0)
+	{
+		glGenBuffers(1, &m_TriangleVBO);
+	}
+
+	glBindBuffer(GL_ARRAY_BUFFER, m_TriangleVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * particles.size(), particles.data(), GL_STATIC_DRAW);
+}
+void Renderer::GetGLPosition(float x, float y, float* newX, float* newY)
 {
 	*newX = x * 2.f / m_WindowSizeX;
 	*newY = y * 2.f / m_WindowSizeY;

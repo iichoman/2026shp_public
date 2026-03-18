@@ -5,6 +5,7 @@ uniform float u_Time;
 in vec3 a_Position;
 in float a_Mass;
 in vec2 a_Vel;
+in float a_RV;
 
 const float c_PI = 3.141592;
 const vec2 c_G= vec2(0, -9.8);
@@ -131,9 +132,11 @@ void Falling()
     float t = mod(u_Time, 1.0);
     float vx = a_Vel.x;
     float vy = a_Vel.y;
+    float initPosX = cos(a_RV*2*c_PI);  // 이게 왜 됨 
+    float initPosY = sin(a_RV*2*c_PI);  // 이게 왜 되지?
     vec4 newPosition;
-    newPosition.x = a_Position.x + vx * t + 0.5 * c_G.x * t * t;
-    newPosition.y = a_Position.y + vy * t + 0.5 * c_G.y * t * t;
+    newPosition.x = initPosX + vx * t + 0.5 * c_G.x * t * t;
+    newPosition.y = initPosY + vy * t + 0.5 * c_G.y * t * t;
     newPosition.z = 0;
     newPosition.w = 1;
 
@@ -141,9 +144,5 @@ void Falling()
 }
 void main()
 {
-	//Basic();
-	//Circle();
-	//GPT2();
-    //sin1();
     Falling();
 }
