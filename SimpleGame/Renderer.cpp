@@ -12,22 +12,19 @@ Renderer::~Renderer()
 
 void Renderer::Initialize(int windowSizeX, int windowSizeY)
 {
-	// Set window size
 	m_WindowSizeX = windowSizeX;
 	m_WindowSizeY = windowSizeY;
 
 	srand((unsigned int)time(NULL));
 
-	// Load shaders
 	m_SolidRectShader = CompileShaders("./Shaders/SolidRect.vs", "./Shaders/SolidRect.fs");
 	m_TriangleShader = CompileShaders("./Shaders/Triangle.vs", "./Shaders/Triangle.fs");
 
-	// Create VBOs
 	CreateVertexBufferObjects();
 
-	GenParticles(30000);
+	GenParticles(3000);
 
-	if (m_SolidRectShader > 0 && m_VBORect > 0)
+	if (m_SolidRectShader > 0 && m_TriangleShader > 0 && m_VBORect > 0 && m_TriangleVBO > 0)
 	{
 		m_Initialized = true;
 	}
@@ -63,6 +60,7 @@ void Renderer::AddShader(GLuint ShaderProgram, const char* pShaderText, GLenum S
 	if (ShaderObj == 0)
 	{
 		fprintf(stderr, "Error creating shader type %d\n", ShaderType);
+		return;
 	}
 
 	const GLchar* p[1];
@@ -82,7 +80,7 @@ void Renderer::AddShader(GLuint ShaderProgram, const char* pShaderText, GLenum S
 		GLchar InfoLog[1024];
 		glGetShaderInfoLog(ShaderObj, 1024, NULL, InfoLog);
 		fprintf(stderr, "Error compiling shader type %d: '%s'\n", ShaderType, InfoLog);
-		printf("%s \n", pShaderText);
+		printf("%s\n", pShaderText);
 	}
 
 	glAttachShader(ShaderProgram, ShaderObj);
@@ -94,7 +92,7 @@ bool Renderer::ReadFile(char* filename, std::string* target)
 
 	if (file.fail())
 	{
-		std::cout << filename << " file loading failed.. \n";
+		std::cout << filename << " file loading failed..\n";
 		file.close();
 		return false;
 	}
@@ -117,6 +115,7 @@ GLuint Renderer::CompileShaders(char* filenameVS, char* filenameFS)
 	if (ShaderProgram == 0)
 	{
 		fprintf(stderr, "Error creating shader program\n");
+		return -1;
 	}
 
 	std::string vs, fs;
@@ -173,7 +172,7 @@ void Renderer::DrawSolidRect(float x, float y, float z, float size, float r, flo
 
 	glUseProgram(m_SolidRectShader);
 
-	glUniform4f(glGetUniformLocation(m_SolidRectShader, "u_Trans"), newX, newY, 0, size);
+	glUniform4f(glGetUniformLocation(m_SolidRectShader, "u_Trans"), newX, newY, z, size);
 	glUniform4f(glGetUniformLocation(m_SolidRectShader, "u_Color"), r, g, b, a);
 
 	int attribPosition = glGetAttribLocation(m_SolidRectShader, "a_Position");
@@ -185,12 +184,11 @@ void Renderer::DrawSolidRect(float x, float y, float z, float size, float r, flo
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 
 	glDisableVertexAttribArray(attribPosition);
-
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-float g_Time = 0;
-
+float g_Time = 0.0f;
+const int value_count = 9;
 void Renderer::DrawTriangle()
 {
 	g_Time += 0.0001f;
@@ -204,32 +202,54 @@ void Renderer::DrawTriangle()
 	int attriMass = glGetAttribLocation(m_TriangleShader, "a_Mass");
 	int attriVel = glGetAttribLocation(m_TriangleShader, "a_Vel");
 	int attriRV = glGetAttribLocation(m_TriangleShader, "a_RV");
+	int attriRV1 = glGetAttribLocation(m_TriangleShader, "a_RV1");
+	int attriRV2 = glGetAttribLocation(m_TriangleShader, "a_RV2");
+
 	glEnableVertexAttribArray(attribPosition);
 	glEnableVertexAttribArray(attriMass);
 	glEnableVertexAttribArray(attriVel);
 	glEnableVertexAttribArray(attriRV);
+	glEnableVertexAttribArray(attriRV1);
+	glEnableVertexAttribArray(attriRV2);
+
 	glBindBuffer(GL_ARRAY_BUFFER, m_TriangleVBO);
 
+	// particle layout:
+	// [0] x, [1] y, [2] z, [3] mass, [4] vx, [5] vy, [6] rv, [7] rv1, [8] rv2
 	glVertexAttribPointer(attribPosition, 3,
 		GL_FLOAT, GL_FALSE,
-		7 * sizeof(float), 0);
+		value_count * sizeof(float), (GLvoid*)(sizeof(float) * 0));
 
 	glVertexAttribPointer(attriMass, 1,
 		GL_FLOAT, GL_FALSE,
-		7 * sizeof(float), (GLvoid*)(sizeof(float) * 3));
+		value_count * sizeof(float), (GLvoid*)(sizeof(float) * 3));
 
 	glVertexAttribPointer(attriVel, 2,
 		GL_FLOAT, GL_FALSE,
-		7 * sizeof(float), (GLvoid*)(sizeof(float) * 4));
-	glVertexAttribPointer(attriRV, 2,
+		value_count * sizeof(float), (GLvoid*)(sizeof(float) * 4));
+
+	glVertexAttribPointer(attriRV, 1,
 		GL_FLOAT, GL_FALSE,
-		7 * sizeof(float), (GLvoid*)(sizeof(float) * 5));
+		value_count * sizeof(float), (GLvoid*)(sizeof(float) * 6));
+
+	glVertexAttribPointer(attriRV1, 1,
+		GL_FLOAT, GL_FALSE,
+		value_count * sizeof(float), (GLvoid*)(sizeof(float) * 7));
+
+	glVertexAttribPointer(attriRV2, 1,
+		GL_FLOAT, GL_FALSE,
+		value_count * sizeof(float), (GLvoid*)(sizeof(float) * 8));
+
+
 
 	glDrawArrays(GL_POINTS, 0, m_TriangleVertexCount);
 
 	glDisableVertexAttribArray(attribPosition);
 	glDisableVertexAttribArray(attriMass);
 	glDisableVertexAttribArray(attriVel);
+	glDisableVertexAttribArray(attriRV);
+	glDisableVertexAttribArray(attriRV1);
+	glDisableVertexAttribArray(attriRV2);
 }
 
 void Renderer::GenParticles(int Num)
@@ -238,19 +258,24 @@ void Renderer::GenParticles(int Num)
 		return;
 
 	std::vector<float> particles;
-	particles.reserve(Num * 7);
+	particles.reserve(Num * value_count);
 
 	for (int i = 0; i < Num; i++)
 	{
-		float x = ((float)rand() / RAND_MAX) * 2.0f - 1.0f;
-		float y = ((float)rand() / RAND_MAX) * 2.0f - 1.0f;
+		float x = 0.0f;
+		float y = 0.0f;
 		float z = 0.0f;
 
-		float mass = ((float)rand() / RAND_MAX) * 0.9f + 0.1f;
+		float mass = ((float)rand() / RAND_MAX) * 1.0f + 1.0f ;
 
 		float vx = ((float)rand() / RAND_MAX) * 2.0f - 1.0f;
 		float vy = ((float)rand() / RAND_MAX) * 2.0f - 1.0f;
-		float rv = ((float)rand() / RAND_MAX) * 2.0f - 1.0f;
+
+		// angle ratio: 0 ~ 1
+		float rv = (float)rand() / RAND_MAX;
+		float rv1 = (float)rand() / RAND_MAX;
+		float rv2 = (float)rand() / RAND_MAX;
+
 		particles.push_back(x);
 		particles.push_back(y);
 		particles.push_back(z);
@@ -258,6 +283,8 @@ void Renderer::GenParticles(int Num)
 		particles.push_back(vx);
 		particles.push_back(vy);
 		particles.push_back(rv);
+		particles.push_back(rv1);
+		particles.push_back(rv2);
 	}
 
 	m_TriangleVertexCount = Num;
@@ -270,6 +297,7 @@ void Renderer::GenParticles(int Num)
 	glBindBuffer(GL_ARRAY_BUFFER, m_TriangleVBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * particles.size(), particles.data(), GL_STATIC_DRAW);
 }
+
 void Renderer::GetGLPosition(float x, float y, float* newX, float* newY)
 {
 	*newX = x * 2.f / m_WindowSizeX;

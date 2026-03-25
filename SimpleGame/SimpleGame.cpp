@@ -58,6 +58,7 @@ int main(int argc, char **argv)
 	glutCreateWindow("Game Software Engineering KPU");
 
 	glewInit();
+	// glEnable(GL_PROGRAM_POINT_SIZE);
 	if (glewIsSupported("GL_VERSION_3_0"))
 	{
 		std::cout << " GLEW Version is 3.0\n ";
